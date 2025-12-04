@@ -20,19 +20,19 @@ for ($i = 0; $i < $jumlahData; $i++) {
     $timestamp = $waktuAwal + ($i * 3600);
     $waktuSQL = date('Y-m-d H:i:s', $timestamp);
     
-    // 2. Buat AQI yang Realistis (Pola Gelombang)
+    // 2. Buat AQI 
     $aqiBase = 80 + (40 * sin($i / 10)); 
     $aqiRandom = rand(-15, 15); 
     $aqi = round($aqiBase + $aqiRandom);
     
     if ($aqi < 0) $aqi = 10;
 
-    // 3. Buat Suhu berdasarkan Waktu (Siang/Malam)
+    // 3. Buat Suhu berdasarkan Waktu 
     $jam = date('H', $timestamp);
     if ($jam >= 6 && $jam <= 18) {
-        $suhu = rand(30, 34); // Siang
+        $suhu = rand(30, 34);
     } else {
-        $suhu = rand(24, 28); // Malam
+        $suhu = rand(24, 28);
     }
 
     // 4. Masukkan ke Database
