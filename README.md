@@ -82,7 +82,7 @@ Setting **Cron Job** di cPanel dengan interval "Once Per Hour":
 ---
 
 ## 📂 Struktur Folder
-* `/Ddmin` - Halaman Panel Admin (Dashboard, Logs, Data).
+* `/Admin` - Halaman Panel Admin (Dashboard, Logs, Data).
 * `/Auth` - Halaman Login & Register.
 * `/Class` - Core Logic (Database, API, Service, Repository).
 * `/Config` - Koneksi Database Legacy.

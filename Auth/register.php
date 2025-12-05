@@ -23,7 +23,7 @@ if (isset($_POST['register'])) {
         $perintah_sql->bind_param("sssi", $nama, $email, $pass, $isSub);
         
         if ($perintah_sql->execute()) {
-            header("Location: user_login.php?sukses=1");
+            header("Location: login.php?pesan=Registrasi Berhasil! Silakan Login.");
             exit;
         } else {
             $pesan = "Gagal daftar: " . $conn->error;
@@ -49,7 +49,7 @@ if (isset($_POST['register'])) {
 <body>
     <div class="card login-card p-4 m-3">
         <div class="card-body">
-            <h3 class="text-center fw-bold mb-4 text-primary">Registrasi Mahasiswa</h3>
+            <h3 class="text-center fw-bold mb-4 text-primary">Registrasi</h3>
             
             <?php if(!empty($pesan)): ?>
                 <div class="alert alert-danger py-2 small text-center"><?php echo $pesan; ?></div>
@@ -83,7 +83,7 @@ if (isset($_POST['register'])) {
 
             <div class="text-center mt-4 small">
                 <p class="text-muted mb-1">Sudah punya akun?</p>
-                <a href="user_login.php" class="text-decoration-none fw-bold">Masuk Sekarang</a>
+                <a href="login.php" class="text-decoration-none fw-bold">Masuk Sekarang</a>
                 <div class="mt-3 border-top pt-3">
                     <a href="../index.php" class="text-secondary text-decoration-none">← Kembali ke Dashboard</a>
                 </div>

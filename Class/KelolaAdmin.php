@@ -21,26 +21,29 @@ class KelolaAdmin {
     }
 
     // CREATE: Tambah Admin
-    public function tambah_admin($username, $password) {
+    public function tambah_admin($username, $email, $password) {
         // Cek duplicate
-        $cek = $this->conn->query("SELECT id FROM admin WHERE username='$username'");
-        if ($cek->num_rows > 0) return false;
+        $cek = $this->conn->prepare("SELECT id FROM admin WHERE username=? OR email=?");
+        $cek->bind_param("ss", $username, $email);
+        $cek->execute();
+
+        if ($cek->get_result()->num_rows > 0) return false;
 
         $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $perintah_sql = $this->conn->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
-        $perintah_sql->bind_param("ss", $username, $hashed);
+        $perintah_sql = $this->conn->prepare("INSERT INTO admin (username, email, password) VALUES (?, ?, ?)");
+        $perintah_sql->bind_param("sss", $username, $email, $hashed);
         return $perintah_sql->execute();
     }
 
     // UPDATE: Edit Password / Username
-    public function update_admin($id, $username, $password = null) {
+    public function update_admin($id, $username, $email,$password = null) {
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $perintah_sql = $this->conn->prepare("UPDATE admin SET username=?, password=? WHERE id=?");
-            $perintah_sql->bind_param("ssi", $username, $hashed, $id);
+            $perintah_sql = $this->conn->prepare("UPDATE admin SET username=?, email=?,password=? WHERE id=?");
+            $perintah_sql->bind_param("sssi", $username, $email, $hashed, $id);
         } else {
-            $perintah_sql = $this->conn->prepare("UPDATE admin SET username=? WHERE id=?");
-            $perintah_sql->bind_param("si", $username, $id);
+            $perintah_sql = $this->conn->prepare("UPDATE admin SET username=?, email=? WHERE id=?");
+            $perintah_sql->bind_param("ssi", $username, $email, $id);
         }
         return $perintah_sql->execute();
     }

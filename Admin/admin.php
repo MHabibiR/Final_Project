@@ -38,10 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // 2. Tambah Admin
     if (isset($_POST['tambah_admin'])) {
-        if ($adminRepo->tambah_admin($_POST['username_baru'], $_POST['password_baru'])) {
+        if ($adminRepo->tambah_admin($_POST['username_baru'], $_POST['email_baru'], $_POST['password_baru'])) {
             $pesan = "✅ Admin berhasil ditambahkan!";
         } else {
-            $pesan = "❌ Gagal (Mungkin username sudah ada).";
+            $pesan = "❌ Gagal (Username atau email sudah ada).";
         }
     }
 
@@ -145,13 +145,16 @@ if (!$data) {
                     </div>
                     <div class="card-body">
                         <form method="POST" class="row g-2 mb-4">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <input type="text" name="username_baru" class="form-control" placeholder="Username Baru" required>
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-4">
+                                <input type="text" name="email_baru" class="form-control" placeholder="Email Baru" required>
+                            </div>
+                            <div class="col-md-3">
                                 <input type="password" name="password_baru" class="form-control" placeholder="Password" required>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <button type="submit" name="tambah_admin" class="btn btn-success w-100"><i class="bi bi-plus-lg"></i></button>
                             </div>
                         </form>

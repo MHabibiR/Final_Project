@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/Exception.php';
 require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/PHPMailer.php';
 require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/SMTP.php';
+require_once __DIR__ . '/EnvLoader.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -13,33 +14,35 @@ class Notifikasi {
         $this->db = $dbConnection;
     }
 
-    public function kirimEmail($aqi, $kota) { 
-        
-        $query = "SELECT email FROM users WHERE is_subscribed = 1";
-        $result = $this->db->query($query);
-        
-        // Cek berapa user yang ketemu
-        $jumlahUser = $result->num_rows;
-
-        if ($jumlahUser == 0) {
-            return;
+    private function ConfigMailer() {
+        if (!getenv('SMTP_HOST')) {
+            EnvLoader::load(__DIR__ . '/../.env');
         }
 
-        // 2. Setup PHPMailer
         $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host       = getenv('SMTP_HOST');
+        $mail->SMTPAuth   = true;
+        $mail->Username   = getenv('SMTP_USER');
+        $mail->Password   = getenv('SMTP_PASS');
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        $mail->Port       = getenv('SMTP_PORT');
+
+        $mail->setFrom(getenv('SMTP_USER'), 'Sistem Monitoring UBP');
+
+        return $mail;
+    }
+
+    // Kirim email
+    public function kirimEmail($aqi, $kota) { 
+        $query = "SELECT email FROM users WHERE is_subscribed = 1";
+        $result = $this->db->query($query);
+        $jumlahUser = $result->num_rows;
+
+        if ($jumlahUser == 0) return;
 
         try {
-            $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com'; 
-            $mail->SMTPAuth   = true;
-            $mail->Username   = 'rahmanhabibi517@gmail.com'; 
-            $mail->Password   = 'efwz yjuh txas tmje'; 
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port       = 465;
-
-            $mail->setFrom('rahmanhabibi517@gmail.com', 'Sistem Monitoring Polusi Udara UBP');
-            
-            // 3. Masukkan semua email ke BCC
+            $mail = $this->ConfigMailer();
             while($user = $result->fetch_assoc()) {
                 $mail->addBCC($user['email']);
             }
@@ -49,20 +52,47 @@ class Notifikasi {
             $mail->Body    = "<h3>PERINGATAN!</h3><p>Udara di $kota sedang buruk (AQI: $aqi). Harap gunakan masker!</p>";
 
             $mail->send();
-            
-            echo "[SUKSES] Email berhasil dikirim \n";
             $this->catatLaporan("Email ($jumlahUser users)", "Alert AQI: $aqi", "Sent");
 
         } catch (Exception $e) {
-            echo "[ERROR PHPMailer] Gagal kirim: " . $mail->ErrorInfo . "\n";
             $this->catatLaporan("Email", "Error: " . $mail->ErrorInfo, "Failed");
         }
     }
 
+    // Kirim link reset password 
+    public function ResetLink($email, $token) {
+        try {
+            $mail = $this->ConfigMailer();
+
+            $mail->addAddress($email);
+
+            if (!getenv('APP_URL')) { EnvLoader::load(__DIR__ . '/../.env'); }
+
+            $baseUrl = getenv('APP_URL');
+            $link = $baseUrl . "/Auth/reset_password.php?token=" . $token;
+
+            $mail->isHTML(true);
+            $mail->Subject = "Reset Password Akun Monitoring";
+            $mail->Body    = "
+                <h3>Permintaan Reset Password</h3>
+                <p>Klik link di bawah ini untuk mereset password Anda:</p>
+                <p><a href='$link'>$link</a></p>
+                <p>Link ini berlaku selama 1 jam.</p>
+            ";
+
+            $mail->send();
+            return true;
+
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    // Fungsi Log ke Database
     private function catatLaporan($penerima, $pesan, $status) {
-        $perintah_sql = $this->db->prepare("INSERT INTO notifikasi_log (penerima, pesan, status) VALUES (?, ?, ?)");
-        $perintah_sql->bind_param("sss", $penerima, $pesan, $status);
-        $perintah_sql->execute();
+        $stmt = $this->db->prepare("INSERT INTO notifikasi_log (penerima, pesan, status) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $penerima, $pesan, $status);
+        $stmt->execute();
     }
 }
 ?>

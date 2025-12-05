@@ -116,8 +116,11 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
                             </ul>
                         </li>
                     <?php else: ?>
+                        <li class="nav-item me-2">
+                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/login.php">Login</a>
+                        </li>
                         <li class="nav-item">
-                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/user_login.php">Login Mahasiswa</a>
+                            <a class="btn btn-primary btn-sm px-4 rounded-pill fw-bold" href="Auth/register.php">Sign In</a>
                         </li>
                     <?php endif; ?>
                 </ul>
@@ -211,9 +214,6 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
     <footer class="bg-white py-4 mt-5 border-top">
         <div class="container text-center small text-muted">
             <p class="mb-1">&copy; 2025 Universitas Buana Perjuangan Karawang.</p>
-            <a href="Auth/login.php" class="text-decoration-none text-secondary opacity-75">
-                <i class="bi bi-lock-fill"></i> Admin Login
-            </a>
         </div>
     </footer>
 

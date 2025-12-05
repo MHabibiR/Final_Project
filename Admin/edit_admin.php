@@ -18,9 +18,10 @@ $error = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $admin = $_POST['username'];
+    $email = $_POST['email'];
     $sandi = !empty($_POST['password']) ? $_POST['password'] : null;
     
-    if ($adminRepo->update_admin($id, $admin, $sandi)) {
+    if ($adminRepo->update_admin($id, $admin, $email, $sandi)) {
         header("Location: admin.php?pesan=updated"); 
         exit;
     } else {
@@ -53,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="mb-3">
                     <label class="form-label fw-bold">Username</label>
                     <input type="text" name="username" class="form-control" value="<?php echo htmlspecialchars($data_admin['username']); ?>" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email</label>
+                    <input type="text" name="email" class="form-control" value="<?php echo htmlspecialchars($data_admin['email']); ?>" required>
                 </div>
                 
                 <div class="mb-4">
