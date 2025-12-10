@@ -2,7 +2,7 @@
 
 Aplikasi berbasis web untuk memantau kualitas udara secara realtime menggunakan API AQICN, dilengkapi dengan sistem peringatan dini via Email dan analisis tren polusi.
 
-Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web, Pemprograman Berorientasi Objek, Analisis dan Desain Berorientasi Objek  .
+Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web, Pemprograman Berorientasi Objek, Analisis dan Desain Berorientasi Objek dan matakuliah Basis Data.
 
 ## 🚀 Fitur Utama
 * **Realtime Monitoring:** Menampilkan AQI (Air Quality Index) dan Suhu terkini.
