@@ -1,8 +1,8 @@
-# ☁️ Sistem Monitoring Polusi Udara Kampus (UBP AirMonitor)
+# ☁️ Website Monitoring Polusi Udara Kampus (UBP AirMonitor)
 
 Aplikasi berbasis web untuk memantau kualitas udara secara realtime menggunakan API AQICN, dilengkapi dengan sistem peringatan dini via Email dan analisis tren polusi.
 
-Dibuat untuk memenuhi Tugas Akhir / Proyek Mata Kuliah Pemrograman Web.
+Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web, Pemprograman Berorientasi Objek, Analisis dan Desain Berorientasi Objek  .
 
 ## 🚀 Fitur Utama
 * **Realtime Monitoring:** Menampilkan AQI (Air Quality Index) dan Suhu terkini.
@@ -43,6 +43,8 @@ Dibuat untuk memenuhi Tugas Akhir / Proyek Mata Kuliah Pemrograman Web.
         SMTP_USER=rahmanhabibi517@gmail.com
         SMTP_PASS=efwz yjuh txas tmje
         SMTP_PORT=465
+
+        APP_URL=http://localhost/Final_project/Fase8
         ```
 4.  **Install Dependencies:**
     * Buka Terminal/CMD di folder proyek.
@@ -70,7 +72,7 @@ Setting **Cron Job** di cPanel dengan interval "Once Per Hour":
 ## 🔑 Akun Pengujian (Demo)
 
 **1. Admin:**
-* **Username:** `admin`
+* **Email:** `rahmanhabibi517@gmail.com`
 * **Password:** `admin123`
 * *Akses:* `Auth/login.php`
 
