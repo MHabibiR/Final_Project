@@ -1,36 +1,89 @@
 <?php
+date_default_timezone_set('Asia/Jakarta');
 session_start();
-include 'Config/koneksi.php';
+
 require_once __DIR__ . '/Class/Database.php';
+require_once __DIR__ . '/Class/APIClient.php';
+require_once __DIR__ . '/Class/Notifikasi.php';
 require_once __DIR__ . '/Class/PengelolaDataUdara.php';
 require_once __DIR__ . '/Class/AnalyticsService.php';
 
-// --- BAGIAN 1: AMBIL DATA REALTIME ---
-$queryLatest = "SELECT * FROM riwayat_aqi ORDER BY waktu_catat DESC LIMIT 1";
-$resultLatest = mysqli_query($conn, $queryLatest);
-$dataLatest = mysqli_fetch_assoc($resultLatest);
-
-if (!$dataLatest) {
-    $currentAQI = 0; $currentSuhu = 0; $lastUpdate = "Belum ada data";
-} else {
-    $currentAQI = $dataLatest['aqi_level'];
-    $currentSuhu = $dataLatest['suhu'];
-    $lastUpdate = date('d M Y, H:i', strtotime($dataLatest['waktu_catat']));
+if (!getenv('API_TOKEN')) {
+    require_once __DIR__ . '/Class/EnvLoader.php';
+    EnvLoader::load(__DIR__ . '/.env');
 }
 
-// --- BAGIAN 2: GRAFIK & STATISTIK ---
 $db = new Database();
+$conn = $db->getConnection();
+
+// Cek data terakhir
+$queryCek = $conn->query("SELECT waktu_catat FROM riwayat_aqi ORDER BY id DESC LIMIT 1");
+$lastData = $queryCek->fetch_assoc();
+$harusUpdate = false;
+
+if (!$lastData) {
+    $harusUpdate = true; 
+} else {
+    $waktuTerakhir = strtotime($lastData['waktu_catat']);
+    $selisihJam = (time() - $waktuTerakhir) / 3600;
+    if ($selisihJam >= 1) $harusUpdate = true;
+}
+
+// Eksekusi Update ke API
+if ($harusUpdate) {
+    try {
+        $api = new APIClient();
+        $data = $api->getLatestAQI();
+
+        if ($data && $data['status'] == 'ok') {
+            $aqi = $data['data']['aqi'];
+            $suhu = $data['data']['iaqi']['t']['v'] ?? 0;
+            $waktu = date('Y-m-d H:i:s');
+            $kota = "UBP Karawang"; 
+
+            $perintahsql = $conn->prepare("INSERT INTO riwayat_aqi (kota, aqi_level, suhu, waktu_catat) VALUES (?, ?, ?, ?)");
+            $perintahsql->bind_param("sdis", $kota, $aqi, $suhu, $waktu);
+            $perintahsql->execute();
+
+            $notifService = new Notifikasi($conn);
+            $cekSet = $conn->query("SELECT threshold_bahaya FROM pengaturan WHERE id=1");
+            $threshold = $cekSet->fetch_assoc()['threshold_bahaya'] ?? 150;
+
+            if ($aqi > $threshold) {
+                $notifService->sendEmailAlert($aqi, $kota);
+            }
+        }
+    } catch (Exception $e) {
+    }
+}
+
+// 1. Data Realtime
+$resLat = $conn->query("SELECT * FROM riwayat_aqi ORDER BY waktu_catat DESC LIMIT 1");
+$dataLat = $resLat->fetch_assoc();
+
+if (!$dataLat) {
+    $currentAQI = 0; $currentSuhu = 0; $lastUpdate = "Belum ada data";
+} else {
+    $currentAQI = $dataLat['aqi_level'];
+    $currentSuhu = $dataLat['suhu'];
+    $lastUpdate = date('d M Y, H:i', strtotime($dataLat['waktu_catat']));
+}
+
+// 2. Data Grafik & Tren 
 try {
-    $repo = new PengelolaDataUdara($db->getConnection());
+    $repo = new PengelolaDataUdara($conn);
     $history = $repo->ambilRiwayat(20);
-    $labels = []; $values = []; $tempData = [];
-    foreach ($history as $row) { $tempData[] = $row; }
-    $tempData = array_reverse($tempData); 
-    foreach ($tempData as $data) {
-        $labels[] = date('H:i', strtotime($data['waktu_catat']));
-        $values[] = $data['aqi_level'];
+    
+    $labels = []; $values = []; $temp = [];
+    foreach ($history as $row) { $temp[] = $row; }
+    $temp = array_reverse($temp); 
+
+    foreach ($temp as $d) {
+        $labels[] = date('H:i', strtotime($d['waktu_catat']));
+        $values[] = $d['aqi_level'];
     }
 
+    // Pie Chart
     $stats = $repo->ambilStatistikKategori();
     $pieLabels = []; $pieValues = []; $pieColors = [];
     foreach ($stats as $row) {
@@ -41,19 +94,38 @@ try {
         elseif (strpos($row['kategori'], 'Tidak Sehat') !== false) $pieColors[] = '#fd7e14';
         else $pieColors[] = '#dc3545';
     }
-} catch (Exception $e) { /* Error Handling */ }
 
-// --- BAGIAN 3: ANALISIS ---
+} catch (Exception $e) {
+    $labels = []; $values = [];
+    $pieLabels = []; $pieValues = []; $pieColors = [];
+}
+
+// 3. Analisis Service (Trend & Badge)
 $analytics = new AnalyticsService();
-$trendData = $analytics->analyzeTrend($values, $currentAQI);
-$trendMsg = $trendData['msg']; $trendColor = $trendData['color']; $trendIcon = $trendData['icon']; $predictionValue = $trendData['prediction'];
+
+// Cek Tren 
+if (!empty($values)) {
+    $trendData = $analytics->analyzeTrend($values, $currentAQI);
+} else {
+    $trendData = [
+        'msg' => 'Data tidak cukup',
+        'color' => 'text-muted',
+        'icon' => 'bi-dash',
+        'prediction' => 0
+    ];
+}
+
+$trendMsg       = $trendData['msg'];
+$trendColor     = $trendData['color'];
+$trendIcon      = $trendData['icon']; 
+$predictionValue= $trendData['prediction'];
+
 list($badgeClass, $statusText) = $analytics->getStatusInfo($currentAQI);
 
-// --- BAGIAN 4: THRESHOLD ---
-$querySet = mysqli_query($conn, "SELECT threshold_bahaya FROM pengaturan WHERE id=1 LIMIT 1");
-$setting = mysqli_fetch_assoc($querySet);
-$batasBahaya = $setting['threshold_bahaya'] ?? 150; 
-$isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
+$qSet = $conn->query("SELECT threshold_bahaya FROM pengaturan WHERE id=1");
+$set = $qSet->fetch_assoc();
+$batasBahaya = $set['threshold_bahaya'] ?? 150;
+$isDangerous = ($currentAQI >= $batasBahaya);
 ?>
 
 <!DOCTYPE html>
@@ -61,55 +133,13 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Monitoring Polusi Udara Kampus UBP</title>
+    <title>Website Monitoring Polusi Udara Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
-        .bg-orange { background-color: #fd7e14; }
         .card-hover:hover { transform: translateY(-5px); transition: 0.3s; }
         .hero-gradient { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
-
-        @media (max-width: 991.98px) {
-            .navbar-nav .dropdown-menu {
-                position: static;      
-                display: block;      
-                border: none;           
-                box-shadow: none;       
-                background: transparent; 
-                padding-left: 0;        
-                margin-top: 0;
-            }
-
-            .navbar-nav .dropdown-item {
-                color: rgba(255,255,255,0.55); 
-                padding: 10px 0;              
-                text-align: right;            
-            }
-            .navbar-nav .dropdown-item:hover {
-                background: transparent;
-                color: #fff;
-            }
-            .navbar-nav .dropdown-item i {
-                margin-right: 5px;
-            }
-
-            .navbar-nav .dropdown-toggle {
-                pointer-events: none; 
-                color: #fff !important; 
-                font-weight: bold;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                margin-bottom: 5px;
-            }
-
-            .navbar-nav .dropdown-toggle::after {
-                display: none;
-            }
-
-            .dropdown-divider {
-                display: none;
-            }
-        }
     </style>
 </head>
 <body>
@@ -119,38 +149,39 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
             <a class="navbar-brand fw-bold" href="#">
                 <i class="bi bi-cloud-haze2-fill me-2"></i>UBP AirMonitor
             </a>
-            
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto text-end align-items-lg-center">
-                    
-                    <?php if(isset($_SESSION['user_login'])): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle me-1"></i> <?php echo htmlspecialchars($_SESSION['user_name']); ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-                                <li>
-                                    <a class="dropdown-item" href="profile.php">
-                                        <i class="bi bi-person-gear"></i> Profil Saya
-                                    </a>
-                                </li>
+                <ul class="navbar-nav ms-auto align-items-center">
+                        <?php if(isset($_SESSION['user_login']) || isset($_SESSION['admin_login'])): ?>
+                            
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i> 
+                                    <?php 
+                                        // Tampilkan Nama yang Sesuai
+                                        if(isset($_SESSION['user_name'])) {
+                                            echo htmlspecialchars($_SESSION['user_name']); 
+                                        } elseif(isset($_SESSION['admin_name'])) {
+                                            echo htmlspecialchars($_SESSION['admin_name']) . " (Admin)";
+                                        } else {
+                                            echo "Akun Saya";
+                                        }
+                                    ?>
+                                </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.php"><i class="bi bi-person-gear me-2"></i>Profil Saya</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item text-danger" href="Auth/logout.php">
-                                        <i class="bi bi-box-arrow-right"></i> Logout
-                                    </a>
-                                </li>
+                                <li><a class="dropdown-item text-danger" href="Auth/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                             </ul>
                         </li>
                     <?php else: ?>
-                        <li class="nav-item mb-2 mb-lg-0 me-lg-2">
-                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/login.php">Login</a>
+                        <li class="nav-item me-2">
+                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/login.php">Masuk</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-primary btn-sm px-4 rounded-pill fw-bold" href="Auth/register.php">Sign In</a>
+                            <a class="btn btn-primary btn-sm px-4 rounded-pill fw-bold" href="Auth/register.php">Daftar Akun</a>
                         </li>
                     <?php endif; ?>
                 </ul>
@@ -191,7 +222,7 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
                     <div class="card-body p-4 position-relative overflow-hidden">
                         <h6 class="text-uppercase text-muted fw-bold mb-3">Analisis Tren (1 Jam)</h6>
                         <h2 class="display-6 fw-bold <?php echo $trendColor; ?>">
-                            <?php echo $trendIcon; ?> <?php echo $trendMsg; ?>
+                            <i class="<?php echo $trendIcon; ?>"></i> <?php echo $trendMsg; ?>
                         </h2>
                         <p class="text-muted small mt-2">
                             Estimasi AQI berikutnya: <strong><?php echo $predictionValue > 0 ? $predictionValue : '-'; ?></strong>
@@ -234,7 +265,7 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
                         <div style="height: 250px; position: relative;">
                             <canvas id="pieChart"></canvas>
                         </div>
-                        <p class="text-center text-muted small mt-3">*Berdasarkan 100 data terakhir</p>
+                        <p class="text-center text-muted small mt-3">*Berdasarkan Data Terbaru</p>
                     </div>
                 </div>
             </div>
@@ -252,7 +283,7 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Logic Chart & Alert (Tetap Sama)
+        // 1. Notifikasi Bahaya
         var statusBahaya = <?php echo $isDangerous ? 'true' : 'false'; ?>;
         var angkaBatas = <?php echo $batasBahaya; ?>;
         var aqiSekarang = <?php echo $currentAQI; ?>;
@@ -260,12 +291,15 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
         if (statusBahaya) {
             Swal.fire({
                 title: '⚠️ PERINGATAN BAHAYA!',
-                text: 'Kualitas udara saat ini buruk!',
+                html: 'Kualitas udara saat ini (<b>' + aqiSekarang + '</b>) melebihi batas aman (' + angkaBatas + ').<br>Harap gunakan masker!',
                 icon: 'warning',
-                confirmButtonText: 'OK'
+                confirmButtonText: 'Saya Mengerti',
+                confirmButtonColor: '#d33',
+                allowOutsideClick: false
             });
         }
 
+        // 2. Pie Chart
         const ctxPie = document.getElementById('pieChart').getContext('2d');
         new Chart(ctxPie, {
             type: 'doughnut',
@@ -280,10 +314,12 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
 
+        // 3. Line Chart
         const ctxLine = document.getElementById('airChart').getContext('2d');
         const gradient = ctxLine.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(13, 110, 253, 0.5)'); 
         gradient.addColorStop(1, 'rgba(13, 110, 253, 0.0)'); 
+
         new Chart(ctxLine, {
             type: 'line',
             data: {
@@ -297,7 +333,12 @@ $isDangerous = ($currentAQI >= $batasBahaya) ? true : false;
                     tension: 0.4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
         });
     </script>
 </body>
