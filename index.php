@@ -50,7 +50,7 @@ if ($harusUpdate) {
             $threshold = $cekSet->fetch_assoc()['threshold_bahaya'] ?? 150;
 
             if ($aqi > $threshold) {
-                $notifService->sendEmailAlert($aqi, $kota);
+                $notifService->kirimEmail($aqi, $kota);
             }
         }
     } catch (Exception $e) {
@@ -159,8 +159,7 @@ $isDangerous = ($currentAQI >= $batasBahaya);
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="bi bi-person-circle me-1"></i> 
-                                    <?php 
-                                        // Tampilkan Nama yang Sesuai
+                                    <?php
                                         if(isset($_SESSION['user_name'])) {
                                             echo htmlspecialchars($_SESSION['user_name']); 
                                         } elseif(isset($_SESSION['admin_name'])) {
