@@ -10,9 +10,7 @@ if (isset($_POST['register'])) {
     $nama  = $_POST['nama'];
     $email = $_POST['email'];
     $pass  = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    
-    // Tangkap nilai checkbox.
-    $isSub = isset($_POST['is_subscribed']) ? 1 : 0;
+    $isSub = 1;
     
     // Cek email kembar
     $cek = $conn->query("SELECT id FROM users WHERE email='$email'");
@@ -70,12 +68,6 @@ if (isset($_POST['register'])) {
                 <div class="form-floating mb-3">
                     <input type="password" class="form-control" name="password" id="password" placeholder="Password" required>
                     <label for="password">Password</label>
-                </div>
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" name="is_subscribed" value="1" id="subscribeCheck" checked>
-                    <label class="form-check-label small text-muted" for="subscribeCheck">
-                        Kirimkan saya notifikasi via email jika kualitas udara <b>BURUK</b>.
-                    </label>
                 </div>
                 
                 <button type="submit" name="register" class="btn btn-primary w-100 py-2 fw-bold rounded-pill">Daftar</button>
