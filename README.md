@@ -2,7 +2,7 @@
 
 Aplikasi berbasis web untuk memantau kualitas udara secara realtime menggunakan API AQICN, dilengkapi dengan sistem peringatan dini via Email dan analisis tren polusi.
 
-Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web, Pemprograman Berorientasi Objek, Analisis dan Desain Berorientasi Objek dan matakuliah Basis Data.
+Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web,BAsis data, Pemprograman Berorientasi Objek, Analisis dan Desain Berorientasi Objek.
 
 ## 🚀 Fitur Utama
 * **Realtime Monitoring:** Menampilkan AQI (Air Quality Index) dan Suhu terkini.
@@ -40,34 +40,19 @@ Dibuat untuk memenuhi Final project dari matakuliah Pemprograman Web, Pemprogram
         API_TOKEN=596d39cb3f64efecfd8928449884552956ded22e
         
         SMTP_HOST=smtp.gmail.com
-        SMTP_USER=rahmanhabibi517@gmail.com
-        SMTP_PASS=efwz yjuh txas tmje
+        SMTP_USER=ubpairmonitor@gmail.com
+        SMTP_PASS=svwk sqda ehob pqns
         SMTP_PORT=465
 
-        APP_URL=http://localhost/Final_project/Fase8
+        APP_URL=http://localhost/Final_project/Fase9
         ```
 4.  **Install Dependencies:**
     * Buka Terminal/CMD di folder proyek.
     * Jalankan: `composer install` (untuk mengunduh PHPMailer).
     * *Jika tidak pakai composer, pastikan folder `vendor` sudah tercopy.*
 5.  **Jalankan:**
-    * Buka browser: `http://localhost/Final_project/Fase5/index.php`
+    * Buka browser: `http://localhost/Final_project/Fase9/index.php`
 
----
-
-## 🤖 Cara Menjalankan Logger (Robot Pencatat)
-
-Agar data tersimpan otomatis dan notifikasi berjalan, script `logger.php` harus dijalankan.
-
-**Di Windows (Manual):**
-Buka CMD, ketik:
-`php logger.php`
-
-**Di Hosting (Otomatis):**
-Setting **Cron Job** di cPanel dengan interval "Once Per Hour":
-`/usr/local/bin/php /home/username/public_html/logger.php`
-
----
 
 ## 🔑 Akun Pengujian (Demo)
 

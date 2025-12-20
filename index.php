@@ -140,47 +140,88 @@ $isDangerous = ($currentAQI >= $batasBahaya);
         body { background-color: #f8f9fa; }
         .card-hover:hover { transform: translateY(-5px); transition: 0.3s; }
         .hero-gradient { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
+
+        @media (max-width: 991.98px) {
+            .navbar-nav .dropdown-menu {
+                position: static;      
+                display: block;      
+                border: none;           
+                box-shadow: none;       
+                background: transparent; 
+                padding-left: 0;        
+                margin-top: 0;
+            }
+
+            .navbar-nav .dropdown-item {
+                color: rgba(255,255,255,0.55); 
+                padding: 10px 0;              
+                text-align: right;            
+            }
+            .navbar-nav .dropdown-item:hover {
+                background: transparent;
+                color: #fff;
+            }
+            .navbar-nav .dropdown-item i {
+                margin-right: 5px;
+            }
+
+            .navbar-nav .dropdown-toggle {
+                pointer-events: none; 
+                color: #fff !important; 
+                font-weight: bold;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                margin-bottom: 5px;
+            }
+
+            .navbar-nav .dropdown-toggle::after {
+                display: none;
+            }
+
+            .dropdown-divider {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#">
                 <i class="bi bi-cloud-haze2-fill me-2"></i>UBP AirMonitor
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                        <?php if(isset($_SESSION['user_login']) || isset($_SESSION['admin_login'])): ?>
-                            
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-circle me-1"></i> 
-                                    <?php
-                                        if(isset($_SESSION['user_name'])) {
-                                            echo htmlspecialchars($_SESSION['user_name']); 
-                                        } elseif(isset($_SESSION['admin_name'])) {
-                                            echo htmlspecialchars($_SESSION['admin_name']) . " (Admin)";
-                                        } else {
-                                            echo "Akun Saya";
-                                        }
-                                    ?>
-                                </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="profile.php"><i class="bi bi-person-gear me-2"></i>Profil Saya</a></li>
+                <ul class="navbar-nav ms-auto text-end align-items-lg-center">
+                    
+                    <?php if(isset($_SESSION['user_login'])): ?>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-1"></i> <?php echo htmlspecialchars($_SESSION['user_name']); ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                                <li>
+                                    <a class="dropdown-item" href="profile.php">
+                                        <i class="bi bi-person-gear"></i> Profil Saya
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="Auth/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="Auth/logout.php">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     <?php else: ?>
-                        <li class="nav-item me-2">
-                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/login.php">Masuk</a>
+                        <li class="nav-item mb-2 mb-lg-0 me-lg-2">
+                            <a class="btn btn-outline-light btn-sm px-4 rounded-pill" href="Auth/login.php">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-primary btn-sm px-4 rounded-pill fw-bold" href="Auth/register.php">Daftar Akun</a>
+                            <a class="btn btn-primary btn-sm px-4 rounded-pill fw-bold" href="Auth/register.php">Sign In</a>
                         </li>
                     <?php endif; ?>
                 </ul>
